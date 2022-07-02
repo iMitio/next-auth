@@ -1,5 +1,6 @@
 import { GetServerSideProps, GetServerSidePropsContext, GetServerSidePropsResult } from "next";
-import {parseCookies} from "nookies";
+import {parseCookies, destroyCookie} from "nookies";
+import { AuthTokenError } from "../service/errors/AuthTokenError";
 
 
 
@@ -16,6 +17,18 @@ export  function withSSRAuth<P>(fn: GetServerSideProps<P>) {
             }
     
         }
-        return await fn(value)
+        try {
+            return await fn(value)
+        } catch (error) {
+          if(error instanceof AuthTokenError) {
+            destroyCookie(value, 'nextauth.token')
+            destroyCookie(value, 'nextauth.refreshToken')
+            console.log(error)
+          }
+
+          
+        }
+
+     
     }
 }

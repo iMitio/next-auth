@@ -1,7 +1,7 @@
 import Router, { useRouter } from "next/router";
 import { createContext, ReactNode, useEffect, useState } from "react";
-import {setCookie, parseCookies, destroyCookie} from "nookies"
 import { api } from "../service/apiClient";
+import {setCookie, parseCookies, destroyCookie} from "nookies"
 
 type SignInCredentials = {
     email: string;

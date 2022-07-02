@@ -1,4 +1,3 @@
-             
 import  axios, { AxiosError } from  "axios"
 import  {parseCookies, setCookie} from "nookies"
 import { signOut } from "../context/AuthContext";
@@ -7,8 +6,8 @@ import { AuthTokenError } from "./errors/AuthTokenError";
 let isRefeshing = false;
 let failedRequestQueue = []
 
-export function setupAPIClient (context = undefined) {
-    let cookies = parseCookies(context);
+export  function setupAPIClient(ctx = undefined){
+    let  cookies = parseCookies(ctx);
 
     const  api =  axios.create({
         baseURL: "http://localhost:3333",
@@ -21,49 +20,50 @@ export function setupAPIClient (context = undefined) {
         return response;
     },(error: AxiosError)=> {
         if(error.response.status === 401) {
-            if(error.response?.data?.code === "token.expired"){
+            if(error.response.data?.code === "token.expired"){
                 //renovar o token
-                cookies = parseCookies(context);
+                cookies = parseCookies(ctx);
                 const {'nextauth.refreshToken': refreshToken} = cookies
     
-                const originalConfig = error.config
+                const originalConfig = error.config;
     
                 if(!isRefeshing){
                     isRefeshing = true
+                    console.log("refresh")
     
                     api.post('/refresh', {
                         refreshToken
                     }).then(response => {
                         const {token} = response.data
                         
-                        setCookie(context, 'nextauth.token', token, {
+                        setCookie(ctx, 'nextauth.token', token, {
                             maxAge: 60 * 60 * 24 * 30, // 30 days
                             path: "/"
                         })
         
-                        setCookie(context, 'nextauth.refreshToken', response.data.refreshToken,  {
+                        setCookie(ctx, 'nextauth.refreshToken', response.data.refreshToken,  {
                             maxAge: 60 * 60 * 24 * 30, // 30 days
                             path: "/"
                         })
                         
+                        api.defaults.headers['Authorization'] = `Bearer ${token}`
     
                         failedRequestQueue.forEach(request => request.onSuccess(token))
-                        failedRequestQueue = []
         
                     }).catch(err => {
                         failedRequestQueue.forEach(request => request.onFailed(err))
-                        failedRequestQueue = [];
+                        failedRequestQueue = []
     
                         if(typeof window !== 'undefined') {
                             signOut()
-                        }else {
-                            return Promise.reject(new AuthTokenError())
-                           }
-                    } ) .finally(() => {
+                        }
+    
+                    } ).finally(() => {
                         isRefeshing = false
                     })
     
                 }
+
                 return new Promise((resolve, rejects) => {
                     failedRequestQueue.push({
                         onSuccess: (token: string) => {
@@ -72,19 +72,21 @@ export function setupAPIClient (context = undefined) {
                             resolve(api(originalConfig))
     
                         } ,
-                        onFailed: (err: AxiosError) => {
-                            rejects(err)
+                        onFailed: (error: AxiosError) => {
+                            rejects(error)
                         }
                 })
-                })
+              })
             }else {
-               if(typeof window !== 'undefined'){
-                    signOut()
-               }
+              if(typeof window !== 'undefined') {
+                signOut()
+              }else {
+                return Promise.reject(new AuthTokenError())
+              }
             }
         }
     
         return Promise.reject(error);
     })
-    return  api
+    return api
 }
