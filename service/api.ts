@@ -58,12 +58,13 @@ export  function setupAPIClient(ctx = undefined){
                             signOut()
                         }
     
-                    } ).finally(() => {
+    
+                    } ) .finally(() => {
                         isRefeshing = false
                     })
     
                 }
-
+                
                 return new Promise((resolve, rejects) => {
                     failedRequestQueue.push({
                         onSuccess: (token: string) => {
